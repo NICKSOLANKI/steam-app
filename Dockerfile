@@ -35,9 +35,7 @@ RUN chown -R www-data:www-data /var/www/html \
 RUN php artisan storage:link
 
 # Optimize Laravel
-RUN php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
+RUN php artisan view:cache
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
@@ -45,8 +43,12 @@ RUN a2enmod rewrite
 # Set Apache document root
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
+# Copy and set up entrypoint script
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Expose port 80
 EXPOSE 80
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Use entrypoint script
+CMD ["entrypoint.sh"]
