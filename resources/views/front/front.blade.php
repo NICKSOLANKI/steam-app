@@ -18,9 +18,6 @@
     <!-- Font Awesome CSS (replace blocked kit) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Laravel Mix Compiled CSS -->
-    <link rel="stylesheet" href="{{ mix('css/app.css') }}">
-
     <link rel="stylesheet" href="{{ asset('asset/css/front.css') }}">
 
     <title>@yield('title')</title>
@@ -66,10 +63,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.min.js"
             integrity="sha384-nsg8ua9HAw1y0W1btsyWgBklPnCUAFLuTMS2G72MMONqmOymq585AcH49TLBQObG"
             crossorigin="anonymous"></script>
-
-    {{-- Laravel Mix Compiled JS --}}
-    <script src="{{ mix('js/app.js') }}" defer></script>
-
     @yield('js')
 
     <footer>

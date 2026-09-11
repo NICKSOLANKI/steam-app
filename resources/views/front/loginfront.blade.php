@@ -10,9 +10,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
 
-    {{-- Laravel Mix Compiled CSS --}}
-    <link rel="stylesheet" href="{{ mix('css/app.css') }}">
-
     {{-- Custom CSS --}}
     <link rel="stylesheet" href="{{ asset('asset/css/front.css') }}">
 
@@ -56,9 +53,6 @@
 
     {{-- FontAwesome CSS (replace blocked kit) --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    {{-- Laravel Mix Compiled JS --}}
-    <script src="{{ mix('js/app.js') }}" defer></script>
 
     @yield('js')
 </body>

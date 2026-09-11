@@ -31,20 +31,20 @@ if (csrfTokenMeta) {
  * Echo exposes an expressive API for subscribing to channels and
  * listening for events broadcast by Laravel.
  */
-// import Echo from 'laravel-echo';
-// import Pusher from 'pusher-js';
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
 
-// window.Pusher = Pusher;
+window.Pusher = Pusher;
 
-// // Configure Echo with your Pusher keys (from .env)
-// window.Echo = new Echo({
-//     broadcaster: 'pusher',
-//     key: import.meta.env.VITE_PUSHER_APP_KEY,
-//     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
-//     forceTLS: true,
-//     // Optional: Enable debug logging in development
-//     // logToConsole: import.meta.env.DEV,
-// });
+// Configure Echo with your Pusher keys (from .env)
+window.Echo = new Echo({
+    broadcaster: 'pusher',
+    key: import.meta.env.VITE_PUSHER_APP_KEY,
+    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
+    forceTLS: true,
+    // Optional: Enable debug logging in development
+    // logToConsole: import.meta.env.DEV,
+});
 
 /**
  * -----------------------
