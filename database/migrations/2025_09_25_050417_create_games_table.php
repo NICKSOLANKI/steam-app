@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal('original_price', 10, 2)->nullable(); // Original price for discount
             $table->string('genre', 100); // Game genre
             $table->string('developer', 255)->nullable(); // Developer name
+            $table->date('release_date')->nullable(); // Release date
             $table->string('image_path')->nullable(); // Image file path
             $table->boolean('is_featured')->default(false); // Featured flag
             $table->boolean('is_active')->default(true); // Active flag
