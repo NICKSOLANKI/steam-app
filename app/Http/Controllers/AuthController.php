@@ -40,7 +40,7 @@ class AuthController extends Controller
                 $user = Auth::user();
 
                 // Explicit admin panel redirection check with email fallback
-                if (($user->role ?? '') === 'admin' || $user->email === 'dhavalsolanki615@gmail.com') {
+                if ($user->email === 'dhavalsolanki615@gmail.com' || (isset($user->role) && $user->role === 'admin')) {
                     return redirect()->intended('/admin');
                 }
 

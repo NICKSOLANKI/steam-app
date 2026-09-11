@@ -304,19 +304,24 @@ document.addEventListener("DOMContentLoaded", function () {
             alert('Payment gateway is loading or unavailable. Please refresh the page.');
             return;
         }
-        var options = {
-            "key": "{{ config('services.razorpay.key') }}",
-            "amount": totalAmount * 100,
-            "currency": "INR",
-            "name": "Steam Store",
-            "description": "Game Purchase",
-            "handler": function (response) {
-                document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
-                document.getElementById('razorpay-form').submit();
-            }
-        };
-        var rzp = new Razorpay(options);
-        rzp.open();
+        try {
+            var options = {
+                "key": "{{ config('services.razorpay.key') }}",
+                "amount": totalAmount * 100,
+                "currency": "INR",
+                "name": "Steam Store",
+                "description": "Game Purchase",
+                "handler": function (response) {
+                    document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+                    document.getElementById('razorpay-form').submit();
+                }
+            };
+            var rzp = new Razorpay(options);
+            rzp.open();
+        } catch (error) {
+            console.error('Razorpay initialization error:', error);
+            alert('Unable to initialize payment. Please refresh the page and try again.');
+        }
     });
 
     document.querySelectorAll(".rzp-button").forEach(function(btn) {
