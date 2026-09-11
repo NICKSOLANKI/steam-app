@@ -7,6 +7,9 @@
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+  <!-- Laravel Mix Compiled CSS -->
+  <link rel="stylesheet" href="{{ mix('css/app.css') }}">
+
   <!-- Custom CSS -->
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 
@@ -308,6 +311,9 @@
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Laravel Mix Compiled JS -->
+  <script src="{{ mix('js/app.js') }}" defer></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
