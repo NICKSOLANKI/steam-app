@@ -15,7 +15,7 @@ use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\CommunityChatController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\GameController;
-use App\Http\Controllers\AdminAuthController;
+
 use App\Http\Controllers\DiscordController;
 use App\Http\Controllers\DownloadController;
 
@@ -153,9 +153,9 @@ Route::post('/logout', function () {
 // Admin Authentication
 // -------------------------
 Route::prefix('admin')->group(function () {
-    Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
-    Route::post('/login', [AdminAuthController::class, 'login'])->name('admin.login.post');
-    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('admin.login');
+    Route::post('/login', [AuthController::class, 'login'])->name('admin.login.post');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('admin.logout');
 });
 
 // -------------------------

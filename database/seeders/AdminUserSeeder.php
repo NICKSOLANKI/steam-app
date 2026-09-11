@@ -18,7 +18,8 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Nikhil Solanki',
                 'password' => \Illuminate\Support\Facades\Hash::make('NIKHIL1077'),
-                'is_admin' => 1
+                'role' => 'admin',
+                'email_verified_at' => now()
             ]
         );
 

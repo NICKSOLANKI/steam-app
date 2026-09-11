@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
-use App\Models\Admin;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -16,6 +15,12 @@ class AuthController extends Controller
 {
     /** Show login page */
     public function showLogin()
+    {
+        return view('auth.login');
+    }
+
+    /** Show admin login form */
+    public function showLoginForm()
     {
         return view('auth.login');
     }
@@ -40,19 +45,17 @@ class AuthController extends Controller
         // ---------------------
         // Admin authentication check
         // ---------------------
-        $admin = Admin::where('email', $email)->first();
-        if ($admin && Hash::check($password, $admin->password) && $admin->isActive()) {
-            // Update last login
-            $admin->updateLastLogin();
-            
+        $user = User::where('email', $email)->first();
+        if ($user && $user->role === 'admin' && Hash::check($password, $user->password)) {
             // Create a session for admin
             session([
-                'admin_id' => $admin->id,
-                'admin_email' => $admin->email,
-                'admin_name' => $admin->name,
+                'admin_id' => $user->id,
+                'admin_email' => $user->email,
+                'admin_name' => $user->name,
                 'is_admin' => true
             ]);
             
+            Auth::login($user);
             $request->session()->regenerate();
             return redirect()->route('admin.dashboard')->with('success', 'Admin logged in successfully!');
         }
@@ -60,7 +63,6 @@ class AuthController extends Controller
         // ---------------------
         // Normal user login
         // ---------------------
-        $user = User::where('email', $email)->first();
 
         // Check email verification
         if ($user && !$user->email_verified_at && Hash::check($password, $user->password)) {
@@ -70,7 +72,12 @@ class AuthController extends Controller
                 ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
             );
 
-            Mail::to($email)->send(new VerifyEmail($email, $token));
+            try {
+                Mail::to($email)->send(new VerifyEmail($email, $token));
+            } catch (\Exception $e) {
+                // Log mail error but continue
+                \Log::error('Email sending failed: ' . $e->getMessage());
+            }
 
             return redirect()->route('verification.wait', ['email' => $email])
                 ->with('error', 'Email not verified. Verification email sent.');
@@ -106,7 +113,12 @@ class AuthController extends Controller
             ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
         );
 
-        Mail::to($user->email)->send(new VerifyEmail($user->email, $token));
+        try {
+            Mail::to($user->email)->send(new VerifyEmail($user->email, $token));
+        } catch (\Exception $e) {
+            // Log mail error but continue
+            \Log::error('Email sending failed: ' . $e->getMessage());
+        }
 
         return redirect()->route('verification.wait', ['email' => $user->email])
             ->with('success', 'Account created! Verification email sent.');
@@ -199,7 +211,12 @@ class AuthController extends Controller
             ['token' => $otp, 'created_at' => now()]
         );
 
-        Mail::to($email)->send(new \App\Mail\OtpMail($otp));
+        try {
+            Mail::to($email)->send(new \App\Mail\OtpMail($otp));
+        } catch (\Exception $e) {
+            // Log mail error but continue
+            \Log::error('OTP email sending failed: ' . $e->getMessage());
+        }
 
         return redirect()->route('forgot.password.otp.verify', ['email' => $email])
             ->with('success', 'OTP has been sent to your email.');
