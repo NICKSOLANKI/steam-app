@@ -191,27 +191,26 @@ class AuthController extends Controller
             $email = $request->email;
             $otp = rand(100000, 999999);
 
-            \Illuminate\Support\Facades\DB::table('password_resets')->updateOrInsert(
-                ['email' => $email],
-                [
-                    'token' => $otp,
-                    'created_at' => now()
-                ]
-            );
+            if (\Illuminate\Support\Facades\Schema::hasTable('password_resets')) {
+                \Illuminate\Support\Facades\DB::table('password_resets')->updateOrInsert(
+                    ['email' => $email],
+                    ['token' => $otp, 'created_at' => now()]
+                );
+            }
 
             try {
                 config(['mail.mailers.smtp.transport' => 'log']);
-                \Illuminate\Support\Facades\Mail::raw("Your OTP for password reset is: {$otp}", function ($message) use ($email) {
+                \Illuminate\Support\Facades\Mail::raw("Your OTP is: {$otp}", function ($message) use ($email) {
                     $message->to($email)->subject('Password Reset OTP');
                 });
             } catch (\Throwable $mailEx) {
-                \Log::warning('OTP Mail failed to send (using log fallback): ' . $mailEx->getMessage());
+                \Log::warning('OTP Mail fallback warning: ' . $mailEx->getMessage());
             }
 
             return back()->with('status', 'OTP sent successfully!');
         } catch (\Throwable $e) {
-            \Log::error('OTP Request Exception: ' . $e->getMessage());
-            return back()->withErrors(['email' => 'Failed to process OTP request. Please try again.']);
+            \Log::error('OTP Send Error: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'Failed to send OTP. Please try again.']);
         }
     }
 

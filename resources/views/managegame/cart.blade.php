@@ -226,8 +226,18 @@
 
         <hr>
         <h4>Total: ₹{{ $grandTotal }}</h4>
+
+        @if($cartItems->isNotEmpty())
+            <button id="rzr-pay-btn" class="buy-btn" style="margin-top: 20px;">Checkout</button>
+        @endif
     @endif
 </div>
+
+<!-- Hidden Razorpay form for form submission -->
+<form id="razorpay-form" action="{{ route('cart.checkout') }}" method="POST" style="display: none;">
+    @csrf
+    <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
+</form>
 
 <!-- Bill Modal -->
 <div class="modal-overlay" id="paymentModal">
@@ -253,6 +263,9 @@ document.addEventListener("DOMContentLoaded", function () {
     let modalOkBtn = document.getElementById("modalOkBtn");
     let redirectUrl = "/library";
 
+    // Calculate total amount for checkout
+    let totalAmount = {{ $grandTotal ?? 0 }};
+
     // Store cart items data for receipt generation
     let cartItemsData = [
         @foreach($cartItems as $item)
@@ -268,6 +281,13 @@ document.addEventListener("DOMContentLoaded", function () {
     // Ensure Razorpay is loaded before using it
     if (typeof Razorpay === 'undefined') {
         console.error('Razorpay checkout script failed to load');
+        let checkoutBtn = document.getElementById('rzr-pay-btn');
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener("click", function(e) {
+                e.preventDefault();
+                alert('Payment gateway is currently unavailable. Please try again later.');
+            });
+        }
         document.querySelectorAll(".rzp-button").forEach(function(btn) {
             btn.addEventListener("click", function(e) {
                 e.preventDefault();
@@ -276,6 +296,28 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         return;
     }
+
+    // Razorpay checkout handler for main checkout button
+    document.getElementById('rzr-pay-btn')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (typeof Razorpay === 'undefined') {
+            alert('Payment gateway is loading or unavailable. Please refresh the page.');
+            return;
+        }
+        var options = {
+            "key": "{{ config('services.razorpay.key') }}",
+            "amount": totalAmount * 100,
+            "currency": "INR",
+            "name": "Steam Store",
+            "description": "Game Purchase",
+            "handler": function (response) {
+                document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+                document.getElementById('razorpay-form').submit();
+            }
+        };
+        var rzp = new Razorpay(options);
+        rzp.open();
+    });
 
     document.querySelectorAll(".rzp-button").forEach(function(btn) {
         btn.addEventListener("click", function(e) {

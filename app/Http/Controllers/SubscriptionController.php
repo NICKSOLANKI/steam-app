@@ -17,77 +17,118 @@ class SubscriptionController extends Controller
     // Show current user's subscription
     public function index()
     {
-        $userSubscription = Subscription::where('user_id', Auth::id())
-            ->where('status', 'active')
-            ->first();
+        try {
+            $userSubscription = null;
+            $availablePlans = collect();
 
-        $availablePlans = SubscriptionPlan::active()->ordered()->get();
+            if (\Illuminate\Support\Facades\Schema::hasTable('subscriptions')) {
+                $userSubscription = Subscription::where('user_id', Auth::id())
+                    ->where('status', 'active')
+                    ->first();
+            }
 
-        return view('managegame.subscription', compact('userSubscription', 'availablePlans'));
+            if (\Illuminate\Support\Facades\Schema::hasTable('subscription_plans')) {
+                $availablePlans = SubscriptionPlan::active()->ordered()->get();
+            }
+
+            return view('managegame.subscription', compact('userSubscription', 'availablePlans'));
+        } catch (\Throwable $e) {
+            \Log::error('Subscription page error: ' . $e->getMessage());
+            return view('managegame.subscription', [
+                'userSubscription' => null,
+                'availablePlans' => collect()
+            ]);
+        }
     }
 
     // Purchase new subscription
     public function purchase(Request $request)
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        // Check for existing active subscription
-        $activeSub = Subscription::where('user_id', $user->id)
-            ->where('status', 'active')
-            ->first();
+            // Check for existing active subscription
+            $activeSub = null;
+            if (\Illuminate\Support\Facades\Schema::hasTable('subscriptions')) {
+                $activeSub = Subscription::where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->first();
+            }
 
-        if ($activeSub) {
+            if ($activeSub) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You already have an active subscription.'
+                ]);
+            }
+
+            $planSlug = $request->plan ?? 'monthly';
+
+            // Get the subscription plan details
+            $subscriptionPlan = null;
+            if (\Illuminate\Support\Facades\Schema::hasTable('subscription_plans')) {
+                $subscriptionPlan = SubscriptionPlan::where('slug', $planSlug)->where('is_active', true)->first();
+            }
+
+            if (!$subscriptionPlan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid subscription plan selected.'
+                ]);
+            }
+
+            $startDate = now();
+            $endDate = $subscriptionPlan->isLifetime() ? null : $startDate->copy()->addDays($subscriptionPlan->duration_days);
+
+            $subscription = null;
+            if (\Illuminate\Support\Facades\Schema::hasTable('subscriptions')) {
+                $subscription = Subscription::create([
+                    'user_id'     => $user->id,
+                    'plan'        => $subscriptionPlan->slug,
+                    'status'      => 'active',
+                    'description' => $subscriptionPlan->description,
+                    'price'       => $subscriptionPlan->price,
+                    'start_date'  => $startDate,
+                    'end_date'    => $endDate
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Subscription activated successfully!',
+                'subscription' => $subscription
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Subscription purchase error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'You already have an active subscription.'
+                'message' => 'Failed to process subscription. Please try again.'
             ]);
         }
-
-        $planSlug = $request->plan ?? 'monthly';
-        
-        // Get the subscription plan details
-        $subscriptionPlan = SubscriptionPlan::where('slug', $planSlug)->where('is_active', true)->first();
-        
-        if (!$subscriptionPlan) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid subscription plan selected.'
-            ]);
-        }
-
-        $startDate = now();
-        $endDate = $subscriptionPlan->isLifetime() ? null : $startDate->copy()->addDays($subscriptionPlan->duration_days);
-
-        $subscription = Subscription::create([
-            'user_id'     => $user->id,
-            'plan'        => $subscriptionPlan->slug,
-            'status'      => 'active',
-            'description' => $subscriptionPlan->description,
-            'price'       => $subscriptionPlan->price,
-            'start_date'  => $startDate,
-            'end_date'    => $endDate
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription activated successfully!',
-            'subscription' => $subscription
-        ]);
     }
 
     // Open subscription content
     public function open()
     {
-        $subscription = Subscription::where('user_id', Auth::id())
-            ->where('status', 'active')
-            ->first();
+        try {
+            $subscription = null;
+            if (\Illuminate\Support\Facades\Schema::hasTable('subscriptions')) {
+                $subscription = Subscription::where('user_id', Auth::id())
+                    ->where('status', 'active')
+                    ->first();
+            }
 
-        if (!$subscription || ($subscription->end_date && $subscription->end_date < now())) {
+            if (!$subscription || ($subscription->end_date && $subscription->end_date < now())) {
+                return redirect()->route('subscription.index')
+                    ->with('error', 'Subscription expired or inactive.');
+            }
+
+            return view('managegame.subscription-open');
+        } catch (\Throwable $e) {
+            \Log::error('Subscription open error: ' . $e->getMessage());
             return redirect()->route('subscription.index')
-                ->with('error', 'Subscription expired or inactive.');
+                ->with('error', 'Unable to access subscription content.');
         }
-
-        return view('managegame.subscription-open');
     }
 
     // ---------------------------
@@ -97,26 +138,45 @@ class SubscriptionController extends Controller
     // Admin view: list all subscriptions
     public function adminIndex()
     {
-        $subscriptions = Subscription::with('user')->get();
-        $subscription = $subscriptions->first(); // optional for upper section
+        try {
+            $subscriptions = collect();
+            $subscription = null;
 
-        return view('ADMIN.sub', compact('subscriptions', 'subscription'));
+            if (\Illuminate\Support\Facades\Schema::hasTable('subscriptions')) {
+                $subscriptions = Subscription::with('user')->get();
+                $subscription = $subscriptions->first();
+            }
+
+            return view('ADMIN.sub', compact('subscriptions', 'subscription'));
+        } catch (\Throwable $e) {
+            \Log::error('Admin subscription page error: ' . $e->getMessage());
+            return view('ADMIN.sub', [
+                'subscriptions' => collect(),
+                'subscription' => null
+            ]);
+        }
     }
 
     // Update subscription (normal form submission)
     public function update(Request $request, Subscription $subscription)
     {
-        $subscription->update([
-            'plan'        => $request->plan,
-            'status'      => $request->status,
-            'start_date'  => $request->start_date,
-            'end_date'    => $request->plan === 'monthly' ? $request->end_date : null,
-            'price'       => $request->price ?? $subscription->price,
-            'description' => $request->description ?? $subscription->description
-        ]);
+        try {
+            $subscription->update([
+                'plan'        => $request->plan,
+                'status'      => $request->status,
+                'start_date'  => $request->start_date,
+                'end_date'    => $request->plan === 'monthly' ? $request->end_date : null,
+                'price'       => $request->price ?? $subscription->price,
+                'description' => $request->description ?? $subscription->description
+            ]);
 
-        return redirect()->route('admin.subscriptions')
-            ->with('success', 'Subscription updated!');
+            return redirect()->route('admin.subscriptions')
+                ->with('success', 'Subscription updated!');
+        } catch (\Throwable $e) {
+            \Log::error('Subscription update error: ' . $e->getMessage());
+            return redirect()->route('admin.subscriptions')
+                ->with('error', 'Failed to update subscription. Please try again.');
+        }
     }
 
     // Delete subscription

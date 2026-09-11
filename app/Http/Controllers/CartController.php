@@ -68,6 +68,35 @@ class CartController extends Controller
             'price' => $library->price,
         ]);
     }
+
+    // Checkout all items in cart
+    public function checkout(Request $request)
+    {
+        try {
+            $cartItems = Cart::where('user_id', auth()->id())->get();
+            if ($cartItems->isEmpty()) {
+                return redirect()->route('cart.index')->with('error', 'Your cart is empty.');
+            }
+
+            // Add all items to library
+            foreach ($cartItems as $cartItem) {
+                $library = new Library();
+                $library->user_id = auth()->id();
+                $library->game_title = $cartItem->game_title;
+                $library->game_image = $cartItem->game_image;
+                $library->price = $cartItem->price;
+                $library->save();
+            }
+
+            // Clear cart
+            Cart::where('user_id', auth()->id())->delete();
+
+            return redirect()->route('library.index')->with('success', 'Purchase completed successfully!');
+        } catch (\Throwable $e) {
+            \Log::error('Checkout error: ' . $e->getMessage());
+            return redirect()->route('cart.index')->with('error', 'An error occurred during checkout. Please try again.');
+        }
+    }
 }
 
 
