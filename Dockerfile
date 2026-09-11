@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
+    nodejs \
+    npm \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -25,6 +27,10 @@ COPY . /var/www/html/
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
+
+# Install Node.js dependencies and build frontend assets
+RUN npm install
+RUN npm run production
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
