@@ -11,6 +11,9 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Laravel Mix Compiled CSS -->
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+
     <!-- Custom Styles -->
     <style>
         * {
