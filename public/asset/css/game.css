@@ -1,0 +1,69 @@
+.bxslider, .bxslider li{
+    height: 100% !important;;
+}
+.bxslider li{
+    background:#13192c;
+    background-repeat: no-repeat;
+    background-position: top center;
+    background-size: cover;
+}
+.images{
+    width: 500px;
+    height: 600px;
+    margin-left: 300px;
+    text-align: center;
+    background: #2d3748;
+}
+.contentt{
+    color: #cbd5e0;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 300px;
+}
+.names{
+    font-size: 30px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #cbd5e0;
+}
+.contentform{
+    width: 1200px;
+    height: 200px;
+}
+.comment{
+    width: 1200px;
+    height: 200px;
+    background: #1a202c;
+    border-style: solid;
+    border: #1a202c;
+    border: 5px;
+    border-radius: 10px;
+}
+.commentp{
+    color: #edf2f7;
+    font-weight: bold;
+    font-size: 20px;
+}
+.brdr{
+    background: #2d3748 ;
+    color: beige;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 5px;
+    border: #0bff00;
+    border-style: double;
+    border: 15px;
+    border-color: #0bff00;
+    width: inherit;
+    height: inherit;
+}
+.name{
+    color : #cbd5e0 ;
+    font-size: 20px;
+    font-weight: bold;
+}
+.howmuch{
+    color :#cbd5e0;
+    font-size: 20px;
+    font-weight: bold;
+}

@@ -1,0 +1,264 @@
+# Essential Commands for Laravel Deployment to Render.com
+
+## 1. Local Preparation Commands
+
+### Clean temporary files
+```powershell
+cd C:\xampp\htdocs\STEAM
+# Run the setup script
+.\setup-deployment.ps1
+```
+
+### Manual cleanup (if script fails)
+```powershell
+Remove-Item -Path "0","999","1299","1499","1599","1799","1899","1999","2199","2399","2499","2999","3499","3999","4299","4499","4999" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "nested-css.php","setpw.php","testhttp.php" -Force -ErrorAction SilentlyContinue
+```
+
+### Laravel optimization
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
+php artisan storage:link
+```
+
+## 2. Database Migration Commands
+
+### Export local database (XAMPP)
+```bash
+mysqldump -u root firstproject > database_backup.sql
+```
+
+### Import to cloud database (PlanetScale example)
+```bash
+mysql -h aws.connect.psdb.cloud -u xxxxx -p steam_production < database_backup.sql
+```
+
+### Run migrations on production (automated in Render)
+```bash
+php artisan migrate --force
+php artisan db:seed --force
+```
+
+### Rollback if needed
+```bash
+php artisan migrate:rollback --force
+```
+
+## 3. Storage Symlink Commands
+
+### Create storage symlink
+```bash
+php artisan storage:link
+```
+
+### Fix permissions on production
+```bash
+chmod -R 775 storage bootstrap/cache
+chmod -R 777 storage/app/public
+```
+
+### Verify symlink exists
+```bash
+ls -la public/storage
+```
+
+## 4. Git and GitHub Commands
+
+### Initialize Git repository
+```bash
+git init
+git add .
+git commit -m "Initial commit - Laravel STEAM application"
+```
+
+### Create GitHub repository (via GitHub CLI)
+```bash
+gh repo create steam-app --public --source=.
+git push -u origin main
+```
+
+### Manual GitHub setup
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/steam-app.git
+git branch -M main
+git push -u origin main
+```
+
+### Push updates after deployment
+```bash
+git add .
+git commit -m "Update description"
+git push origin main
+```
+
+## 5. WebSocket Testing Commands
+
+### Test broadcasting locally
+```bash
+php artisan tinker
+# Then in tinker:
+event(new App\Events\MessageSent(App\Models\Message::first()));
+```
+
+### Verify Pusher/Soketi connection
+```javascript
+// In browser console:
+window.Echo.channel('community-chat')
+    .listen('MessageSent', (e) => {
+        console.log('Received message:', e);
+    });
+```
+
+## 6. Render-Specific Commands
+
+### View Render logs (via CLI)
+```bash
+render logs steam-app
+```
+
+### Trigger manual deployment
+```bash
+render deploy steam-app
+```
+
+### SSH into Render service
+```bash
+render ssh steam-app
+```
+
+### Inside Render SSH session
+```bash
+php artisan storage:link
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+```
+
+## 7. Environment Variable Setup
+
+### Generate application key
+```bash
+php artisan key:generate
+```
+
+### Clear environment cache
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+## 8. Troubleshooting Commands
+
+### Check Laravel version
+```bash
+php artisan --version
+```
+
+### Check PHP version
+```bash
+php -v
+```
+
+### Check composer dependencies
+```bash
+composer show
+```
+
+### Test database connection
+```bash
+php artisan tinker
+# Then in tinker:
+DB::connection()->getPdo();
+```
+
+### Check storage permissions
+```bash
+ls -la storage/
+ls -la storage/app/public/
+```
+
+### View Laravel logs
+```bash
+tail -f storage/logs/laravel.log
+```
+
+## 9. Monitoring and Maintenance
+
+### Check queue status
+```bash
+php artisan queue:failed
+php artisan queue:retry all
+```
+
+### Clear application cache
+```bash
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+```
+
+### Optimize for production
+```bash
+php artisan optimize
+```
+
+## 10. Backup Commands
+
+### Backup database
+```bash
+mysqldump -u root firstproject > backup_$(date +%Y%m%d).sql
+```
+
+### Backup storage files
+```bash
+tar -czf storage_backup_$(date +%Y%m%d).tar.gz storage/app/public/
+```
+
+### Backup entire project
+```bash
+git push origin main
+```
+
+## Quick Reference
+
+### Common workflow for updates:
+```bash
+# 1. Make changes locally
+# 2. Test locally
+php artisan serve
+
+# 3. Commit and push
+git add .
+git commit -m "Update feature"
+git push origin main
+
+# 4. Render auto-deploys
+# 5. Test on production
+```
+
+### Emergency rollback:
+```bash
+# On local
+git revert HEAD
+git push origin main
+
+# On Render (via SSH)
+php artisan migrate:rollback --force
+```
+
+### Database migration pipeline for production:
+```bash
+# These run automatically in Render build process
+composer install --no-dev --optimize-autoloader
+php artisan key:generate
+php artisan storage:link
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```

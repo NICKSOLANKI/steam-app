@@ -1,0 +1,32 @@
+.product{
+    float: left;
+    width: inherit;
+    height: 170px;
+    background: #718096;
+}
+.img{
+
+
+}
+.card{
+    background: transparent;
+    color: white;
+}
+.card+ .card{
+    margin-left: 10px;
+}
+.addto{
+    opacity: 0.6;
+}
+
+.add{
+
+}
+.card-text{
+    font-weight: bold;
+}
+.addto{
+    background: #0bff00;
+    border: #0bff00;
+    font-weight: bold;
+}

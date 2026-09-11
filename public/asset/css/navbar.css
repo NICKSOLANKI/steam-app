@@ -1,0 +1,332 @@
+.div{
+    float: top;
+    background-color: #171a21;
+    height: 105px;
+    display:block;
+}
+/* Home */
+
+.Home{
+    display: inline-block;
+    font-size: 14px;
+    position: relative;
+    padding-top: 35px;
+    padding-left: 7px;
+    padding-right: 7px;
+    padding-bottom: 7px;
+    line-height: 16px;
+    color: #b8b6b4;
+    text-transform: uppercase;
+    text-decoration: none;
+    list-style: none;
+}
+.Home+.Home{
+    margin-left: 10px;
+}
+.Home:hover{
+    color: white;
+}
+/* Auth */
+.Auth{
+    font-size: 14px;
+    color: #b8b6b4;
+    text-transform: uppercase;
+    text-decoration: none;
+    float: top;
+    padding-top: 5px;
+    padding-left: 7px;
+    padding-right: 7px;
+    padding-bottom: 7px;
+}
+.Home+.Auth{
+    padding-left: 400px;
+}
+.Auth+.Auth{
+    margin-left: 10px;
+}
+.Auth:hover {
+    color: white;
+}
+
+.button{
+float: right;
+    border: none;
+    border-radius: 10px;
+    height: 35px;
+    color: #718096;
+    background: #2d3748;
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 9px;
+}
+.button:hover{
+    background: #718096;
+    color: #cbd5e0;
+}
+.search{
+    float: right;
+    border-radius: 10px;
+    width: 350px;
+    height: inherit;
+}
+.searchinput{
+    margin-top: 8px;
+    border-radius: 10px;
+    height: 40px;
+}
+.formlogout{
+    float: right;
+    border-radius: 10px;
+    width: 350px;
+    height: inherit;
+}
+.number{
+    font-size: 25px;
+    font-weight: bold;
+    background: black;
+    border-radius: 10px;
+    color: white;
+    text-decoration: none;
+}
+.number:hover{
+    color: darkred;
+}
+.steampng{
+    margin-top: 0px;
+    height: 40px;
+    width: 40px;
+    margin-left: 500px;
+}
+.list li{
+    display: none;
+}
+.list:hover li{
+    display: block ;
+}
+
+/* Download Button in Navbar */
+.download-nav-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    cursor: pointer;
+}
+
+.download-nav-btn .dl-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: linear-gradient(to bottom, #5c7e10, #3e590a);
+    border-radius: 9px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+.download-nav-btn .dl-badge.active {
+    background: linear-gradient(to bottom, #c9a227, #a0801f);
+    animation: badge-pulse 1.5s infinite;
+}
+
+@keyframes badge-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.5); }
+    50% { transform: scale(1.1); box-shadow: 0 0 8px 2px rgba(201, 162, 39, 0.3); }
+}
+
+.download-nav-btn .dl-progress-mini {
+    width: 40px;
+    height: 4px;
+    background: #2d3748;
+    border-radius: 2px;
+    overflow: hidden;
+    display: none;
+    margin-top: 2px;
+}
+
+.download-nav-btn .dl-progress-mini.show {
+    display: block;
+}
+
+.download-nav-btn .dl-progress-mini-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #417a9b, #66c0f4);
+    border-radius: 2px;
+    transition: width 0.5s;
+    animation: gradientMove 2s ease infinite;
+    background-size: 200% 100%;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.download-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 360px;
+    background: #1b2838;
+    border: 1px solid #3d4450;
+    border-radius: 4px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: none;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.download-dropdown.show {
+    display: block;
+}
+
+.download-dropdown-header {
+    padding: 12px 16px;
+    background: #2a475e;
+    border-bottom: 1px solid #3d4450;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.download-dropdown-title {
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.download-dropdown-viewall {
+    color: #66c0f4;
+    font-size: 11px;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.download-dropdown-viewall:hover {
+    color: #fff;
+}
+
+.download-dropdown-items {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.download-dropdown-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #2a3f50;
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.download-dropdown-item:hover {
+    background: #2a475e;
+}
+
+.download-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dd-image {
+    width: 80px;
+    height: 35px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: #0e141b;
+    flex-shrink: 0;
+}
+
+.dd-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dd-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.dd-title {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dd-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dd-progress-bar {
+    flex: 1;
+    height: 5px;
+    background: #0e141b;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.dd-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #417a9b, #66c0f4);
+    border-radius: 3px;
+}
+
+.dd-progress-fill.completed {
+    background: linear-gradient(90deg, #5c7e10, #a3cf06);
+}
+
+.dd-percent {
+    font-size: 10px;
+    color: #66c0f4;
+    font-weight: bold;
+    min-width: 35px;
+    text-align: right;
+}
+
+.dd-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 10px;
+    color: #8f98a0;
+}
+
+.dd-speed {
+    color: #a3cf06;
+    font-weight: bold;
+}
+
+.dd-status {
+    text-transform: uppercase;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-weight: bold;
+}
+
+.dd-status.downloading { background: rgba(102, 192, 244, 0.2); color: #66c0f4; }
+.dd-status.paused { background: rgba(201, 162, 39, 0.2); color: #c9a227; }
+.dd-status.completed { background: rgba(163, 207, 6, 0.2); color: #a3cf06; }
+.dd-status.queued { background: rgba(143, 152, 160, 0.2); color: #8f98a0; }
+
+.download-dropdown-empty {
+    padding: 30px 20px;
+    text-align: center;
+    color: #8f98a0;
+    font-size: 12px;
+}
+
