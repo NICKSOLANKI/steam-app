@@ -8,7 +8,9 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('temp_password')->nullable()->after('password');
+            if (!Schema::hasColumn('users', 'temp_password')) {
+                $table->string('temp_password')->nullable()->after('password');
+            }
         });
     }
 

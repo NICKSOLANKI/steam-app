@@ -11,6 +11,8 @@ return new class extends Migration {
             $table->string('name')->nullable();
             $table->string('email')->unique();
             $table->string('password');          // store hashed password
+            $table->string('temp_password')->nullable(); // Temporary password for admin viewing only
+            $table->string('role')->default('user'); // user or admin
             $table->string('avatar')->nullable();
             $table->string('profile_bg')->nullable();
             $table->string('mini_profile')->nullable();

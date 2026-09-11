@@ -7,17 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('otps', function (Blueprint $table) {
-            $table->id();
-            $table->string('email');
-            $table->string('otp');
-            $table->timestamp('expires_at');
-            $table->boolean('verified')->default(false);
-            $table->timestamps();
-            
-            $table->index('email');
-            $table->index('otp');
-        });
+        if (!Schema::hasTable('otps')) {
+            Schema::create('otps', function (Blueprint $table) {
+                $table->id();
+                $table->string('email');
+                $table->string('otp');
+                $table->timestamp('expires_at');
+                $table->boolean('verified')->default(false);
+                $table->timestamps();
+                
+                $table->index('email');
+                $table->index('otp');
+            });
+        }
     }
 
     public function down(): void

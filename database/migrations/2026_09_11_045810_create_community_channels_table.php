@@ -13,16 +13,18 @@ class CreateCommunityChannelsTable extends Migration
      */
     public function up()
     {
-        Schema::create('community_channels', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('server_id')->constrained('community_servers')->onDelete('cascade');
-            $table->string('name');
-            $table->enum('type', ['text', 'voice'])->default('text');
-            $table->text('description')->nullable();
-            $table->integer('position')->default(0);
-            $table->boolean('is_private')->default(false);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('community_channels')) {
+            Schema::create('community_channels', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('server_id')->constrained('community_servers')->onDelete('cascade');
+                $table->string('name');
+                $table->enum('type', ['text', 'voice'])->default('text');
+                $table->text('description')->nullable();
+                $table->integer('position')->default(0);
+                $table->boolean('is_private')->default(false);
+                $table->timestamps();
+            });
+        }
     }
 
     /**
