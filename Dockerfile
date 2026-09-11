@@ -30,7 +30,7 @@ RUN composer install --no-dev --optimize-autoloader
 
 # Install Node.js dependencies and build frontend assets
 RUN npm install
-RUN npm run build
+RUN npm run production
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
