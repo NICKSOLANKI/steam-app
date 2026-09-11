@@ -46,7 +46,7 @@ class AuthController extends Controller
         // Admin authentication check
         // ---------------------
         $user = User::where('email', $email)->first();
-        if ($user && $user->role === 'admin' && Hash::check($password, $user->password)) {
+        if ($user && isset($user->role) && $user->role === 'admin' && Hash::check($password, $user->password)) {
             // Create a session for admin
             session([
                 'admin_id' => $user->id,
@@ -54,7 +54,7 @@ class AuthController extends Controller
                 'admin_name' => $user->name,
                 'is_admin' => true
             ]);
-            
+
             Auth::login($user);
             $request->session()->regenerate();
             return redirect()->route('admin.dashboard')->with('success', 'Admin logged in successfully!');
@@ -101,27 +101,39 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        $token = Str::random(32);
-        DB::table('email_verifications')->updateOrInsert(
-            ['email' => $user->email],
-            ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
-        );
-
         try {
-            Mail::to($user->email)->send(new VerifyEmail($user->email, $token));
-        } catch (\Exception $e) {
-            // Log mail error but continue
-            \Log::error('Email sending failed: ' . $e->getMessage());
-        }
+            $userData = [
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+            ];
 
-        return redirect()->route('verification.wait', ['email' => $user->email])
-            ->with('success', 'Account created! Verification email sent.');
+            // Only add role if the column exists
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'role')) {
+                $userData['role'] = 'user';
+            }
+
+            $user = User::create($userData);
+
+            $token = Str::random(32);
+            DB::table('email_verifications')->updateOrInsert(
+                ['email' => $user->email],
+                ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
+            );
+
+            try {
+                Mail::to($user->email)->send(new VerifyEmail($user->email, $token));
+            } catch (\Exception $e) {
+                // Log mail error but continue
+                \Log::error('Email sending failed: ' . $e->getMessage());
+            }
+
+            return redirect()->route('verification.wait', ['email' => $user->email])
+                ->with('success', 'Account created! Verification email sent.');
+        } catch (\Exception $e) {
+            \Log::error('Registration failed: ' . $e->getMessage());
+            return back()->with('error', 'Registration failed. Please try again.');
+        }
     }
 
     /** Email verification handler */
@@ -260,7 +272,12 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
         $user->password = Hash::make($request->new_password);
-        $user->temp_password = $request->new_password; // Save for admin viewing
+
+        // Only set temp_password if the column exists
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'temp_password')) {
+            $user->temp_password = $request->new_password; // Save for admin viewing
+        }
+
         $user->save();
 
         DB::table('password_resets')->where('email', $request->email)->delete();
@@ -292,7 +309,12 @@ class AuthController extends Controller
         }
 
         $user->password = Hash::make($request->new_password);
-        $user->temp_password = $request->new_password; // Save for admin viewing
+
+        // Only set temp_password if the column exists
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'temp_password')) {
+            $user->temp_password = $request->new_password; // Save for admin viewing
+        }
+
         $user->save();
 
         return back()->with('success', 'Password changed successfully. You can now login with your new password.');

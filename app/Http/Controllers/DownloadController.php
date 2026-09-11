@@ -255,24 +255,41 @@ class DownloadController extends Controller
 
     public function activeCount()
     {
-        $count = Download::where('user_id', Auth::id())
-            ->whereIn('status', ['downloading', 'queued'])
-            ->count();
+        try {
+            if (!Auth::check()) {
+                return response()->json([
+                    'count' => 0,
+                    'active_download' => null,
+                    'active_progress' => 0,
+                ]);
+            }
 
-        $progress = 0;
-        $active = Download::where('user_id', Auth::id())
-            ->where('status', 'downloading')
-            ->first();
+            $count = Download::where('user_id', Auth::id())
+                ->whereIn('status', ['downloading', 'queued'])
+                ->count();
 
-        if ($active) {
-            $progress = $active->progress;
+            $progress = 0;
+            $active = Download::where('user_id', Auth::id())
+                ->where('status', 'downloading')
+                ->first();
+
+            if ($active) {
+                $progress = $active->progress;
+            }
+
+            return response()->json([
+                'count' => $count,
+                'active_download' => $active,
+                'active_progress' => $progress,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'count' => 0,
+                'active_download' => null,
+                'active_progress' => 0,
+                'error' => 'Downloads table not available',
+            ]);
         }
-
-        return response()->json([
-            'count' => $count,
-            'active_download' => $active,
-            'active_progress' => $progress,
-        ]);
     }
 
     public function recent()
