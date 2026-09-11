@@ -38,9 +38,12 @@ class AuthController extends Controller
             if (Auth::attempt($credentials)) {
                 $request->session()->regenerate();
                 $user = Auth::user();
+
+                // Explicit admin panel redirection check
                 if (isset($user->role) && $user->role === 'admin') {
                     return redirect()->intended('/admin');
                 }
+
                 return redirect()->intended('/store');
             }
 
@@ -178,35 +181,44 @@ class AuthController extends Controller
     }
 
     /** Handle OTP Request with mail fallback */
-    public function handleOtp(Request $request)
+    public function sendOtp(Request $request)
     {
         try {
-            $request->validate(['email' => 'required|email|exists:users,email']);
+            $request->validate([
+                'email' => ['required', 'email', 'exists:users,email'],
+            ]);
 
             $email = $request->email;
             $otp = rand(100000, 999999);
 
             \Illuminate\Support\Facades\DB::table('password_resets')->updateOrInsert(
                 ['email' => $email],
-                ['token' => $otp, 'created_at' => now()]
+                [
+                    'token' => $otp,
+                    'created_at' => now()
+                ]
             );
 
-            // Attempt to send OTP email with fallback
             try {
                 config(['mail.mailers.smtp.transport' => 'log']);
-                \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OtpMail($otp));
-            } catch (\Exception $e) {
-                Log::error('OTP email sending failed: ' . $e->getMessage());
-                // Continue even if email fails
+                \Illuminate\Support\Facades\Mail::raw("Your OTP for password reset is: {$otp}", function ($message) use ($email) {
+                    $message->to($email)->subject('Password Reset OTP');
+                });
+            } catch (\Throwable $mailEx) {
+                \Log::warning('OTP Mail failed to send (using log fallback): ' . $mailEx->getMessage());
             }
 
-            return redirect()->route('forgot.password.otp.verify', ['email' => $email])
-                ->with('success', 'OTP has been sent to your email.');
-
+            return back()->with('status', 'OTP sent successfully!');
         } catch (\Throwable $e) {
-            Log::error('OTP request failed: ' . $e->getMessage());
-            return back()->withErrors(['email' => 'An error occurred. Please try again.']);
+            \Log::error('OTP Request Exception: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'Failed to process OTP request. Please try again.']);
         }
+    }
+
+    /** Alias for sendOtp for backward compatibility */
+    public function handleOtp(Request $request)
+    {
+        return $this->sendOtp($request);
     }
 
     /** Show OTP verification form */
