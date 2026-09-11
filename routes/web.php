@@ -89,7 +89,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/add', [CartController::class, 'add'])->name('cart.add');
         Route::delete('/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
         Route::post('/buy/{id}', [CartController::class, 'buy'])->name('cart.buy');
-        Route::post('/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
     });
 
     Route::get('/support', fn() => view('managegame.support'))->name('support');

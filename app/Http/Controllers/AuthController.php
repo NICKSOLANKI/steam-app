@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Admin;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Mail\VerifyEmail;
 
@@ -73,7 +74,7 @@ class AuthController extends Controller
 
         // Check email verification
         if ($user && !$user->email_verified_at && Hash::check($password, $user->password)) {
-            $token = \Illuminate\Support\Str::random(32);
+            $token = Str::random(32);
             DB::table('email_verifications')->updateOrInsert(
                 ['email' => $email],
                 ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
@@ -109,7 +110,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $token = \Illuminate\Support\Str::random(32);
+        $token = Str::random(32);
         DB::table('email_verifications')->updateOrInsert(
             ['email' => $user->email],
             ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
