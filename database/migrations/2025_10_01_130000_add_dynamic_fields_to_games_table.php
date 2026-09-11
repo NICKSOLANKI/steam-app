@@ -39,16 +39,35 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('games', function (Blueprint $table) {
-            $table->dropColumn([
-                'release_date',
-                'trailer_url',
-                'tags',
-                'supports_windows',
-                'supports_controller',
-                'is_single_player',
-                'min_requirements',
-                'rec_requirements',
-            ]);
+            $columnsToDrop = [];
+            if (Schema::hasColumn('games', 'release_date')) {
+                $columnsToDrop[] = 'release_date';
+            }
+            if (Schema::hasColumn('games', 'trailer_url')) {
+                $columnsToDrop[] = 'trailer_url';
+            }
+            if (Schema::hasColumn('games', 'tags')) {
+                $columnsToDrop[] = 'tags';
+            }
+            if (Schema::hasColumn('games', 'supports_windows')) {
+                $columnsToDrop[] = 'supports_windows';
+            }
+            if (Schema::hasColumn('games', 'supports_controller')) {
+                $columnsToDrop[] = 'supports_controller';
+            }
+            if (Schema::hasColumn('games', 'is_single_player')) {
+                $columnsToDrop[] = 'is_single_player';
+            }
+            if (Schema::hasColumn('games', 'min_requirements')) {
+                $columnsToDrop[] = 'min_requirements';
+            }
+            if (Schema::hasColumn('games', 'rec_requirements')) {
+                $columnsToDrop[] = 'rec_requirements';
+            }
+
+            if (!empty($columnsToDrop)) {
+                $table->dropColumn($columnsToDrop);
+            }
         });
     }
 };
