@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Laravel Mix Compiled CSS -->
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('asset/css/front.css') }}">
@@ -40,6 +40,9 @@
 
     <!-- Bootstrap Bundle JS (Latest) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Laravel Mix Compiled JS -->
+    <script src="{{ mix('js/app.js') }}" defer></script>
 
     @yield('js')
 </body>

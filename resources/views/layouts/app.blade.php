@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Laravel Mix Compiled CSS -->
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 
     <!-- Custom Styles -->
     <style>
@@ -316,6 +316,9 @@
     
     <!-- Optional: jQuery (if needed) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Laravel Mix Compiled JS -->
+    <script src="{{ mix('js/app.js') }}" defer></script>
 
     <!-- Make sure all page-specific scripts are loaded AFTER the DOM -->
     @yield('scripts')
