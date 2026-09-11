@@ -253,72 +253,101 @@ document.addEventListener("DOMContentLoaded", function () {
     let modalOkBtn = document.getElementById("modalOkBtn");
     let redirectUrl = "/library";
 
+    // Store cart items data for receipt generation
+    let cartItemsData = [
+        @foreach($cartItems as $item)
+        {
+            id: {{ $item->id }},
+            title: "{{ $item->game_title }}",
+            image: "{{ $item->game_image }}",
+            price: {{ $item->price * ($item->quantity ?? 1) }}
+        },
+        @endforeach
+    ];
+
+    // Ensure Razorpay is loaded before using it
+    if (typeof Razorpay === 'undefined') {
+        console.error('Razorpay checkout script failed to load');
+        document.querySelectorAll(".rzp-button").forEach(function(btn) {
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                alert('Payment gateway is currently unavailable. Please try again later.');
+            });
+        });
+        return;
+    }
+
     document.querySelectorAll(".rzp-button").forEach(function(btn) {
         btn.addEventListener("click", function(e) {
             e.preventDefault();
 
-            let id = this.getAttribute("data-id");
-            let price = parseFloat(this.getAttribute("data-price"));
-            let name = this.getAttribute("data-name");
-            let img = this.getAttribute("data-img");
+            try {
+                let id = this.getAttribute("data-id");
+                let price = parseFloat(this.getAttribute("data-price"));
+                let name = this.getAttribute("data-name");
+                let img = this.getAttribute("data-img");
 
-            let options = {
-                "key": "{{ config('services.razorpay.key') }}",
-                "amount": price * 100,
-                "currency": "INR",
-                "name": "Steam Gaming Store",
-                "description": name,
-                "image": img,
-                "handler": function(response) {
-                    fetch("/cart/buy/" + id, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                        },
-                        body: JSON.stringify({ payment_id: response.razorpay_payment_id })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        let now = new Date().toLocaleString();
-                        billDate.innerHTML = `Transaction Date: ${now}`;
+                let options = {
+                    "key": "{{ config('services.razorpay.key') }}",
+                    "amount": price * 100,
+                    "currency": "INR",
+                    "name": "Steam Gaming Store",
+                    "description": name,
+                    "image": img,
+                    "handler": function(response) {
+                        fetch("/cart/buy/" + id, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({ payment_id: response.razorpay_payment_id })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            let now = new Date().toLocaleString();
+                            billDate.innerHTML = `Transaction Date: ${now}`;
 
-                        // Build receipt dynamically
-                        billContent.innerHTML = '';
-                        let grandTotal = 0;
-                        @foreach($cartItems as $item)
-                            let itemPrice = {{ $item->price * ($item->quantity ?? 1) }};
-                            grandTotal += itemPrice;
-                            billContent.innerHTML += `
-                                <div class="bill-item">
-                                    <img src="{{ $item->game_image }}" alt="{{ $item->game_title }}">
-                                    <div class="bill-details">
-                                        <h4>{{ $item->game_title }}</h4>
-                                        <p>Order ID: ${response.razorpay_payment_id}</p>
-                                        <p>Price Paid: ₹${itemPrice}</p>
+                            // Build receipt dynamically using stored cart data
+                            billContent.innerHTML = '';
+                            let grandTotal = 0;
+                            cartItemsData.forEach(function(item) {
+                                grandTotal += item.price;
+                                billContent.innerHTML += `
+                                    <div class="bill-item">
+                                        <img src="${item.image}" alt="${item.title}">
+                                        <div class="bill-details">
+                                            <h4>${item.title}</h4>
+                                            <p>Order ID: ${response.razorpay_payment_id}</p>
+                                            <p>Price Paid: ₹${item.price}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            `;
-                        @endforeach
-                        billTotal.innerHTML = `Total Paid: ₹${grandTotal}`;
+                                `;
+                            });
+                            billTotal.innerHTML = `Total Paid: ₹${grandTotal}`;
 
-                        modal.style.display = "flex";
-                    })
-                    .catch(err => {
-                        modal.style.display = "flex";
-                        billContent.innerHTML = `<p style="color:red;">Transaction failed or receipt unavailable.</p>`;
-                    });
-                },
-                "prefill": {
-                    "name": "{{ auth()->check() ? auth()->user()->name : '' }}",
-                    "email": "{{ auth()->check() ? auth()->user()->email : '' }}",
-                    "contact": "9999999999"
-                },
-                "theme": { "color": "#3399cc" }
-            };
+                            modal.style.display = "flex";
+                        })
+                        .catch(err => {
+                            console.error('Payment processing error:', err);
+                            modal.style.display = "flex";
+                            billContent.innerHTML = `<p style="color:red;">Transaction failed or receipt unavailable.</p>`;
+                        });
+                    },
+                    "prefill": {
+                        "name": "{{ auth()->check() ? auth()->user()->name : '' }}",
+                        "email": "{{ auth()->check() ? auth()->user()->email : '' }}",
+                        "contact": "9999999999"
+                    },
+                    "theme": { "color": "#3399cc" }
+                };
 
-            let rzp = new Razorpay(options);
-            rzp.open();
+                let rzp = new Razorpay(options);
+                rzp.open();
+            } catch (error) {
+                console.error('Razorpay initialization error:', error);
+                alert('Unable to initialize payment. Please refresh the page and try again.');
+            }
         });
     });
 

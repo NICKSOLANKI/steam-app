@@ -39,8 +39,8 @@ class AuthController extends Controller
                 $request->session()->regenerate();
                 $user = Auth::user();
 
-                // Explicit admin panel redirection check
-                if (isset($user->role) && $user->role === 'admin') {
+                // Explicit admin panel redirection check with email fallback
+                if (($user->role ?? '') === 'admin' || $user->email === 'dhavalsolanki615@gmail.com') {
                     return redirect()->intended('/admin');
                 }
 
