@@ -33,7 +33,7 @@ class SubscriptionController extends Controller
 
             return view('managegame.subscription', compact('userSubscription', 'availablePlans'));
         } catch (\Throwable $e) {
-            \Log::error('Subscription page error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Subscription page error: ' . $e->getMessage());
             return view('managegame.subscription', [
                 'userSubscription' => null,
                 'availablePlans' => collect()
@@ -99,7 +99,7 @@ class SubscriptionController extends Controller
                 'subscription' => $subscription
             ]);
         } catch (\Throwable $e) {
-            \Log::error('Subscription purchase error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Subscription purchase error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to process subscription. Please try again.'
@@ -125,7 +125,7 @@ class SubscriptionController extends Controller
 
             return view('managegame.subscription-open');
         } catch (\Throwable $e) {
-            \Log::error('Subscription open error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Subscription open error: ' . $e->getMessage());
             return redirect()->route('subscription.index')
                 ->with('error', 'Unable to access subscription content.');
         }
@@ -149,7 +149,7 @@ class SubscriptionController extends Controller
 
             return view('ADMIN.sub', compact('subscriptions', 'subscription'));
         } catch (\Throwable $e) {
-            \Log::error('Admin subscription page error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Admin subscription page error: ' . $e->getMessage());
             return view('ADMIN.sub', [
                 'subscriptions' => collect(),
                 'subscription' => null
@@ -173,7 +173,7 @@ class SubscriptionController extends Controller
             return redirect()->route('admin.subscriptions')
                 ->with('success', 'Subscription updated!');
         } catch (\Throwable $e) {
-            \Log::error('Subscription update error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Subscription update error: ' . $e->getMessage());
             return redirect()->route('admin.subscriptions')
                 ->with('error', 'Failed to update subscription. Please try again.');
         }
@@ -187,7 +187,7 @@ class SubscriptionController extends Controller
             return redirect()->route('admin.subscriptions')
                 ->with('success', 'Subscription deleted!');
         } catch (\Throwable $e) {
-            \Log::error('Subscription delete error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Subscription delete error: ' . $e->getMessage());
             return redirect()->route('admin.subscriptions')
                 ->with('error', 'Failed to delete subscription. Please try again.');
         }
@@ -233,7 +233,7 @@ class SubscriptionController extends Controller
                 ]
             ]);
         } catch (\Throwable $e) {
-            \Log::error('Admin subscription update error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Admin subscription update error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update subscription. Please try again.'

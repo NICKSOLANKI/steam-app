@@ -15,7 +15,7 @@ class CartController extends Controller
             $cartItems = Cart::where('user_id', auth()->id())->get();
             return view('managegame.cart', compact('cartItems'));
         } catch (\Throwable $e) {
-            \Log::error('Cart index error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Cart index error: ' . $e->getMessage());
             return view('managegame.cart', ['cartItems' => collect()]);
         }
     }
@@ -34,7 +34,7 @@ class CartController extends Controller
 
             return redirect()->route('cart.index')->with('success', 'Game added to cart!');
         } catch (\Throwable $e) {
-            \Log::error('Cart add error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Cart add error: ' . $e->getMessage());
             return redirect()->route('cart.index')->with('error', 'Failed to add game to cart.');
         }
     }
@@ -49,7 +49,7 @@ class CartController extends Controller
             }
             return redirect()->route('cart.index')->with('success', 'Item removed!');
         } catch (\Throwable $e) {
-            \Log::error('Cart remove error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Cart remove error: ' . $e->getMessage());
             return redirect()->route('cart.index')->with('error', 'Failed to remove item.');
         }
     }
@@ -84,7 +84,7 @@ class CartController extends Controller
                 'price' => $library->price,
             ]);
         } catch (\Throwable $e) {
-            \Log::error('Cart buy error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Cart buy error: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'Purchase failed. Please try again.'], 500);
         }
     }
@@ -113,7 +113,7 @@ class CartController extends Controller
 
             return redirect()->route('library.index')->with('success', 'Purchase completed successfully!');
         } catch (\Throwable $e) {
-            \Log::error('Checkout error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Checkout error: ' . $e->getMessage());
             return redirect()->route('cart.index')->with('error', 'An error occurred during checkout. Please try again.');
         }
     }
