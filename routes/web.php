@@ -15,7 +15,7 @@ use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\CommunityChatController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\GameController;
-
+use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\DiscordController;
 use App\Http\Controllers\DownloadController;
 
@@ -36,20 +36,6 @@ Route::middleware('guest')->group(function () {
 Route::get('/', function () {
     return view('notlogin.index');
 })->name('home');
-
-Route::get('/test-images', function () {
-    $game = \App\Models\Game::first();
-    $banner = \App\Models\BannerSlider::first();
-    
-    return response()->json([
-        'game_image_url' => $game->image_url,
-        'game_image_path' => $game->image_path,
-        'banner_image_url' => \App\Models\BannerSlider::getBannerSliders()[0]['image'] ?? 'No banner',
-        'banner_image_path' => $banner->image_path ?? 'No banner',
-        'storage_link_exists' => public_path('storage'),
-        'image_file_exists' => file_exists(public_path('storage/' . $game->image_path)),
-    ]);
-});
 
 Route::get('/store', [FrontController::class, 'Games'])->name('notlogin.index');
 Route::get('/guest', [FrontController::class, 'Games'])->name('notlogin.guest');
@@ -154,9 +140,9 @@ Route::post('/logout', function () {
 // Admin Authentication
 // -------------------------
 Route::prefix('admin')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('admin.login');
-    Route::post('/login', [AuthController::class, 'login'])->name('admin.login.post');
-    Route::post('/logout', [AuthController::class, 'logout'])->name('admin.logout');
+    Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
+    Route::post('/login', [AdminAuthController::class, 'login'])->name('admin.login.post');
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 });
 
 // -------------------------
@@ -272,12 +258,3 @@ Route::prefix('api')->group(function () {
 Route::fallback(function () {
     return view('notlogin.index');
 });
-
-// -------------------------
-// Extra Enhancements Added
-// -------------------------
-// 1. Grouped admin game routes clearly
-// 2. Added optional API-like endpoints for AJAX/search
-// 3. Preserved all guest, public, auth, admin, subscription, community, and fallback routes
-// 4. Added comments for maintainability and clarity
-// 5. Fully compatible with Laravel 10+ conventions

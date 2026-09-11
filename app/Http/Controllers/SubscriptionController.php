@@ -182,9 +182,15 @@ class SubscriptionController extends Controller
     // Delete subscription
     public function destroy(Subscription $subscription)
     {
-        $subscription->delete();
-        return redirect()->route('admin.subscriptions')
-            ->with('success', 'Subscription deleted!');
+        try {
+            $subscription->delete();
+            return redirect()->route('admin.subscriptions')
+                ->with('success', 'Subscription deleted!');
+        } catch (\Throwable $e) {
+            \Log::error('Subscription delete error: ' . $e->getMessage());
+            return redirect()->route('admin.subscriptions')
+                ->with('error', 'Failed to delete subscription. Please try again.');
+        }
     }
 
     // ---------------------------
@@ -192,38 +198,46 @@ class SubscriptionController extends Controller
     // ---------------------------
     public function adminUpdate(Request $request, $id)
     {
-        $sub = Subscription::findOrFail($id);
+        try {
+            $sub = Subscription::findOrFail($id);
 
-        $request->validate([
-            'plan'        => 'required|string|in:monthly,lifetime',
-            'status'      => 'required|string|in:active,expired',
-            'description' => 'required|string|max:255',
-            'price'       => 'required|numeric|min:0',
-            'start_date'  => 'nullable|date',
-            'end_date'    => 'nullable|date|after_or_equal:start_date',
-        ]);
+            $request->validate([
+                'plan'        => 'required|string|in:monthly,lifetime',
+                'status'      => 'required|string|in:active,expired',
+                'description' => 'required|string|max:255',
+                'price'       => 'required|numeric|min:0',
+                'start_date'  => 'nullable|date',
+                'end_date'    => 'nullable|date|after_or_equal:start_date',
+            ]);
 
-        $sub->update([
-            'plan'        => $request->plan,
-            'status'      => $request->status,
-            'description' => $request->description,
-            'price'       => $request->price,
-            'start_date'  => $request->start_date,
-            'end_date'    => $request->plan === 'monthly' ? $request->end_date : null,
-        ]);
+            $sub->update([
+                'plan'        => $request->plan,
+                'status'      => $request->status,
+                'description' => $request->description,
+                'price'       => $request->price,
+                'start_date'  => $request->start_date,
+                'end_date'    => $request->plan === 'monthly' ? $request->end_date : null,
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription updated successfully!',
-            'subscription' => [
-                'id'          => $sub->id,
-                'plan'        => $sub->plan,
-                'status'      => $sub->status,
-                'description' => $sub->description,
-                'price'       => $sub->price,
-                'start_date'  => $sub->start_date?->format('Y-m-d'),
-                'end_date'    => $sub->plan === 'monthly' ? ($sub->end_date?->format('Y-m-d') ?? '-') : 'Lifetime',
-            ]
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Subscription updated successfully!',
+                'subscription' => [
+                    'id'          => $sub->id,
+                    'plan'        => $sub->plan,
+                    'status'      => $sub->status,
+                    'description' => $sub->description,
+                    'price'       => $sub->price,
+                    'start_date'  => $sub->start_date?->format('Y-m-d'),
+                    'end_date'    => $sub->plan === 'monthly' ? ($sub->end_date?->format('Y-m-d') ?? '-') : 'Lifetime',
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Admin subscription update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update subscription. Please try again.'
+            ]);
+        }
     }
 }

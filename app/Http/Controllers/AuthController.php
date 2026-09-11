@@ -4,18 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use App\Models\Admin;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use App\Mail\VerifyEmail;
 
 class AuthController extends Controller
 {
     /** Show login page */
     public function showLogin()
-    {
-        return view('auth.login');
-    }
-
-    /** Show admin login form */
-    public function showLoginForm()
     {
         return view('auth.login');
     }
@@ -26,71 +26,107 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-    /** Handle unified login with role-based redirection */
+    /** Handle normal login */
     public function login(Request $request)
     {
         try {
             $credentials = $request->validate([
-                'email' => ['required', 'email'],
-                'password' => ['required'],
+                'email'    => 'required|email|min:5|max:50',
+                'password' => 'required|min:3|max:20',
             ]);
+
+            $email = $credentials['email'];
+            $password = $credentials['password'];
+
+            // ---------------------
+            // Admin authentication check
+            // ---------------------
+            $admin = Admin::where('email', $email)->first();
+            if ($admin && Hash::check($password, $admin->password) && $admin->isActive()) {
+                // Update last login
+                $admin->updateLastLogin();
+                
+                // Create a session for admin
+                session([
+                    'admin_id' => $admin->id,
+                    'admin_email' => $admin->email,
+                    'admin_name' => $admin->name,
+                    'is_admin' => true
+                ]);
+                
+                $request->session()->regenerate();
+                return redirect()->route('admin.dashboard')->with('success', 'Admin logged in successfully!');
+            }
+
+            // ---------------------
+            // Normal user login
+            // ---------------------
+            $user = User::where('email', $email)->first();
+
+            // Check email verification
+            if ($user && !$user->email_verified_at && Hash::check($password, $user->password)) {
+                $token = Str::random(32);
+                DB::table('email_verifications')->updateOrInsert(
+                    ['email' => $email],
+                    ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
+                );
+
+                Mail::to($email)->send(new VerifyEmail($email, $token));
+
+                return redirect()->route('verification.wait', ['email' => $email])
+                    ->with('error', 'Email not verified. Verification email sent.');
+            }
 
             if (Auth::attempt($credentials)) {
                 $request->session()->regenerate();
-                $user = Auth::user();
-
-                // Explicit admin panel redirection check with email fallback
-                if ($user->email === 'dhavalsolanki615@gmail.com' || (isset($user->role) && $user->role === 'admin')) {
-                    return redirect()->intended('/admin');
-                }
-
-                return redirect()->intended('/store');
+                session(['is_admin' => false]);
+                return redirect()->route('notlogin.index')->with('success', 'Logged in successfully!');
             }
 
-            return back()->withErrors(['email' => 'Invalid email or password.'])->onlyInput('email');
+            return back()->with('error', 'Invalid email or password.');
         } catch (\Throwable $e) {
             \Log::error('Login Exception: ' . $e->getMessage());
-            return back()->withErrors(['email' => 'Invalid email or password.'])->onlyInput('email');
+            return back()->with('error', 'Invalid email or password.');
         }
     }
 
-    /** Handle normal registration with comprehensive error handling */
+    /** Handle normal registration */
     public function register(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-                'password' => ['required', 'string', 'min:6'],
+            $request->validate([
+                'name'     => 'required|string|max:255',
+                'email'    => 'required|email|unique:users,email',
+                'password' => 'required|string|min:6|confirmed',
             ]);
 
-            $userData = [
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => \Illuminate\Support\Facades\Hash::make($validated['password']),
-            ];
+            $user = User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'role')) {
-                $userData['role'] = 'user';
-            }
+            $token = Str::random(32);
+            DB::table('email_verifications')->updateOrInsert(
+                ['email' => $user->email],
+                ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
+            );
 
-            $user = \App\Models\User::create($userData);
+            Mail::to($user->email)->send(new VerifyEmail($user->email, $token));
 
-            Auth::login($user);
-            $request->session()->regenerate();
-
-            return redirect()->intended('/store');
+            return redirect()->route('verification.wait', ['email' => $user->email])
+                ->with('success', 'Account created! Verification email sent.');
         } catch (\Throwable $e) {
             \Log::error('Register Exception: ' . $e->getMessage());
-            return back()->withErrors(['email' => 'Registration failed: ' . $e->getMessage()]);
+            return back()->with('error', 'Registration failed. Please try again.');
         }
     }
 
-    /** Email verification handler with error handling */
+    /** Email verification handler */
     public function verifyEmail(Request $request)
     {
         try {
-            $record = \Illuminate\Support\Facades\DB::table('email_verifications')
+            $record = DB::table('email_verifications')
                 ->where('email', $request->email)
                 ->where('token', $request->token)
                 ->first();
@@ -103,7 +139,7 @@ class AuthController extends Controller
                 ]);
             }
 
-            $user = \App\Models\User::where('email', $request->email)->first();
+            $user = User::where('email', $request->email)->first();
             if (!$user) {
                 return view('verify-result', [
                     'status' => 'User not found.',
@@ -115,31 +151,23 @@ class AuthController extends Controller
             $user->email_verified_at = now();
             $user->save();
 
-            \Illuminate\Support\Facades\DB::table('email_verifications')->where('email', $request->email)->delete();
+            DB::table('email_verifications')->where('email', $request->email)->delete();
 
             Auth::login($user);
-
-            // Determine user role with fallback
-            $userRole = isset($user->role) ? $user->role : 'user';
-
             session([
                 'user_logged_in' => true,
                 'user_email'     => $user->email,
-                'is_admin'       => ($userRole === 'admin')
+                'is_admin'       => false
             ]);
             $request->session()->regenerate();
-
-            // Role-based redirect after verification
-            $redirectUrl = ($userRole === 'admin') ? route('admin.dashboard') : route('store');
 
             return view('verify-result', [
                 'status' => 'Email verified successfully!',
                 'token'  => $request->token,
-                'redirect_url' => $redirectUrl
+                'redirect_url' => route('notlogin.index')
             ]);
-
         } catch (\Throwable $e) {
-            Log::error('Email verification failed: ' . $e->getMessage());
+            \Log::error('Email verification failed: ' . $e->getMessage());
             return view('verify-result', [
                 'status' => 'Verification failed. Please try again.',
                 'token' => $request->token ?? null,
@@ -148,7 +176,7 @@ class AuthController extends Controller
         }
     }
 
-    /** Logout with error handling */
+    /** Logout */
     public function logout(Request $request)
     {
         try {
@@ -159,7 +187,7 @@ class AuthController extends Controller
 
             return redirect()->route('notlogin.index')->with('success', 'Logged out successfully!');
         } catch (\Throwable $e) {
-            Log::error('Logout failed: ' . $e->getMessage());
+            \Log::error('Logout failed: ' . $e->getMessage());
             return redirect()->route('notlogin.index')->with('success', 'Logged out successfully!');
         }
     }
@@ -180,19 +208,17 @@ class AuthController extends Controller
         return view('auth.forgot-password-otp');
     }
 
-    /** Handle OTP Request with mail fallback */
-    public function sendOtp(Request $request)
+    /** Handle OTP Request */
+    public function handleOtp(Request $request)
     {
         try {
-            $request->validate([
-                'email' => ['required', 'email', 'exists:users,email'],
-            ]);
+            $request->validate(['email' => 'required|email|exists:users,email']);
 
             $email = $request->email;
             $otp = rand(100000, 999999);
 
             if (\Illuminate\Support\Facades\Schema::hasTable('password_resets')) {
-                \Illuminate\Support\Facades\DB::table('password_resets')->updateOrInsert(
+                DB::table('password_resets')->updateOrInsert(
                     ['email' => $email],
                     ['token' => $otp, 'created_at' => now()]
                 );
@@ -207,17 +233,12 @@ class AuthController extends Controller
                 \Log::warning('OTP Mail fallback warning: ' . $mailEx->getMessage());
             }
 
-            return back()->with('status', 'OTP sent successfully!');
+            return redirect()->route('forgot.password.otp.verify', ['email' => $email])
+                ->with('success', 'OTP has been sent to your email.');
         } catch (\Throwable $e) {
-            \Log::error('OTP Send Error: ' . $e->getMessage());
-            return back()->withErrors(['email' => 'Failed to send OTP. Please try again.']);
+            \Log::error('OTP Request Exception: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'Failed to process OTP request. Please try again.']);
         }
-    }
-
-    /** Alias for sendOtp for backward compatibility */
-    public function handleOtp(Request $request)
-    {
-        return $this->sendOtp($request);
     }
 
     /** Show OTP verification form */
@@ -226,7 +247,7 @@ class AuthController extends Controller
         return view('auth.verify-otp', compact('email'));
     }
 
-    /** Handle OTP verification with error handling */
+    /** Handle OTP verification */
     public function verifyOtp(Request $request)
     {
         try {
@@ -235,15 +256,14 @@ class AuthController extends Controller
                 'otp'   => 'required|digits:6'
             ]);
 
-            $record = \Illuminate\Support\Facades\DB::table('password_resets')->where('email', $request->email)->first();
+            $record = DB::table('password_resets')->where('email', $request->email)->first();
             if (!$record || $record->token != $request->otp) {
                 return back()->withErrors(['otp' => 'Invalid or expired OTP.']);
             }
 
             return redirect()->route('forgot.password.newpass', ['email' => $request->email]);
-
         } catch (\Throwable $e) {
-            Log::error('OTP verification failed: ' . $e->getMessage());
+            \Log::error('OTP verification failed: ' . $e->getMessage());
             return back()->withErrors(['otp' => 'An error occurred. Please try again.']);
         }
     }
@@ -254,7 +274,7 @@ class AuthController extends Controller
         return view('auth.new-password', compact('email'));
     }
 
-    /** Handle New Password with comprehensive error handling */
+    /** Handle New Password */
     public function handleNewPass(Request $request)
     {
         try {
@@ -263,12 +283,12 @@ class AuthController extends Controller
                 'new_password' => 'required|string|min:6|confirmed',
             ]);
 
-            $user = \App\Models\User::where('email', $request->email)->first();
+            $user = User::where('email', $request->email)->first();
             if (!$user) {
                 return back()->withErrors(['email' => 'User not found.']);
             }
 
-            $user->password = \Illuminate\Support\Facades\Hash::make($request->new_password);
+            $user->password = Hash::make($request->new_password);
 
             // Only set temp_password if the column exists
             if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'temp_password')) {
@@ -277,12 +297,13 @@ class AuthController extends Controller
 
             $user->save();
 
-            \Illuminate\Support\Facades\DB::table('password_resets')->where('email', $request->email)->delete();
+            if (\Illuminate\Support\Facades\Schema::hasTable('password_resets')) {
+                DB::table('password_resets')->where('email', $request->email)->delete();
+            }
 
             return redirect()->route('login')->with('success', 'Password changed successfully! You can login now.');
-
         } catch (\Throwable $e) {
-            Log::error('Password update failed: ' . $e->getMessage());
+            \Log::error('Password update failed: ' . $e->getMessage());
             return back()->withErrors(['email' => 'An error occurred. Please try again.']);
         }
     }
@@ -293,7 +314,7 @@ class AuthController extends Controller
         return view('auth.forgot-password-old');
     }
 
-    /** Handle Old Password Change with comprehensive error handling */
+    /** Handle Old Password Change */
     public function handleOldPass(Request $request)
     {
         try {
@@ -305,16 +326,16 @@ class AuthController extends Controller
                 'email.exists' => 'This email is not registered in our system.',
             ]);
 
-            $user = \App\Models\User::where('email', $request->email)->first();
+            $user = User::where('email', $request->email)->first();
             if (!$user) {
                 return back()->withErrors(['email' => 'User not found.']);
             }
 
-            if (!\Illuminate\Support\Facades\Hash::check($request->old_password, $user->password)) {
+            if (!Hash::check($request->old_password, $user->password)) {
                 return back()->withErrors(['old_password' => 'Old password does not match our records.']);
             }
 
-            $user->password = \Illuminate\Support\Facades\Hash::make($request->new_password);
+            $user->password = Hash::make($request->new_password);
 
             // Only set temp_password if the column exists
             if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'temp_password')) {
@@ -324,10 +345,15 @@ class AuthController extends Controller
             $user->save();
 
             return back()->with('success', 'Password changed successfully. You can now login with your new password.');
-
         } catch (\Throwable $e) {
-            Log::error('Old password change failed: ' . $e->getMessage());
+            \Log::error('Old password change failed: ' . $e->getMessage());
             return back()->withErrors(['email' => 'An error occurred. Please try again.']);
         }
+    }
+
+    /** Alias for sendOtp for backward compatibility */
+    public function sendOtp(Request $request)
+    {
+        return $this->handleOtp($request);
     }
 }
