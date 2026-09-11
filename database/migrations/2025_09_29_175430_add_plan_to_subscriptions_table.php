@@ -13,22 +13,22 @@ return new class extends Migration
     {
         Schema::table('subscriptions', function (Blueprint $table) {
             if (!Schema::hasColumn('subscriptions', 'plan')) {
-                $table->string('plan')->default('monthly')->after('user_id');
+                $table->string('plan')->default('monthly');
             }
             if (!Schema::hasColumn('subscriptions', 'status')) {
-                $table->string('status')->default('active')->after('plan');
+                $table->string('status')->default('active');
             }
             if (!Schema::hasColumn('subscriptions', 'description')) {
-                $table->text('description')->nullable()->after('status');
+                $table->text('description')->nullable();
             }
             if (!Schema::hasColumn('subscriptions', 'price')) {
-                $table->integer('price')->default(299)->after('description');
+                $table->integer('price')->default(299);
             }
             if (!Schema::hasColumn('subscriptions', 'start_date')) {
-                $table->date('start_date')->nullable()->after('price');
+                $table->date('start_date')->nullable();
             }
             if (!Schema::hasColumn('subscriptions', 'end_date')) {
-                $table->date('end_date')->nullable()->after('start_date');
+                $table->date('end_date')->nullable();
             }
         });
     }
