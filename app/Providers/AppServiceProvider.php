@@ -25,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        // Force HTTPS in production and on Render
+        if (config('app.env') === 'production' || env('RENDER')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Make $games available in the banner layout globally
         View::composer('layouts.banner', function ($view) {
             // Fetch all active games from DB
