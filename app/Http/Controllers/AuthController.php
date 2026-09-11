@@ -42,40 +42,46 @@ class AuthController extends Controller
                 'password' => 'required|min:3|max:20',
             ]);
 
-            // Attempt authentication using Laravel's secure Auth::attempt()
-            if (Auth::attempt($credentials)) {
-                $request->session()->regenerate();
-                $user = Auth::user();
+            // Use database transaction for safe authentication
+            return DB::transaction(function () use ($request, $credentials) {
+                // Attempt authentication using Laravel's secure Auth::attempt()
+                if (Auth::attempt($credentials)) {
+                    $request->session()->regenerate();
+                    $user = Auth::user();
 
-                // Determine user role with fallback
-                $userRole = isset($user->role) ? $user->role : 'user';
+                    // Determine user role with fallback
+                    $userRole = isset($user->role) ? $user->role : 'user';
 
-                // Role-based redirection
-                if ($userRole === 'admin') {
-                    // Set admin session
-                    session([
-                        'admin_id' => $user->id,
-                        'admin_email' => $user->email,
-                        'admin_name' => $user->name,
-                        'is_admin' => true
-                    ]);
+                    // Role-based redirection
+                    if ($userRole === 'admin') {
+                        // Set admin session
+                        session([
+                            'admin_id' => $user->id,
+                            'admin_email' => $user->email,
+                            'admin_name' => $user->name,
+                            'is_admin' => true
+                        ]);
 
-                    return redirect()->route('admin.dashboard')->with('success', 'Admin logged in successfully!');
-                } else {
-                    // Regular user session
-                    session([
-                        'user_logged_in' => true,
-                        'user_email' => $user->email,
-                        'is_admin' => false
-                    ]);
+                        return redirect()->route('admin.dashboard')->with('success', 'Admin logged in successfully!');
+                    } else {
+                        // Regular user session
+                        session([
+                            'user_logged_in' => true,
+                            'user_email' => $user->email,
+                            'is_admin' => false
+                        ]);
 
-                    return redirect()->route('store')->with('success', 'Logged in successfully!');
+                        return redirect()->route('store')->with('success', 'Logged in successfully!');
+                    }
                 }
-            }
 
-            // Authentication failed
-            return back()->with('error', 'Invalid email or password.');
+                // Authentication failed
+                return back()->with('error', 'Invalid email or password.');
+            });
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during login: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'Database error: ' . $e->getMessage()]);
         } catch (\Exception $e) {
             Log::error('Login failed: ' . $e->getMessage());
             return back()->withErrors(['email' => 'An error occurred during login. Please try again.']);
@@ -92,48 +98,51 @@ class AuthController extends Controller
                 'password' => 'required|string|min:6|confirmed',
             ]);
 
-            $userData = [
-                'name'     => $request->name,
-                'email'    => $request->email,
-                'password' => Hash::make($request->password),
-            ];
+            // Use database transaction for safe user creation
+            return DB::transaction(function () use ($request) {
+                $userData = [
+                    'name'     => $request->name,
+                    'email'    => $request->email,
+                    'password' => Hash::make($request->password),
+                ];
 
-            // Only add role if the column exists
-            if (Schema::hasColumn('users', 'role')) {
-                $userData['role'] = 'user';
-            }
+                // Only add role if the column exists
+                if (Schema::hasColumn('users', 'role')) {
+                    $userData['role'] = 'user';
+                }
 
-            $user = User::create($userData);
+                $user = User::create($userData);
 
-            // Generate verification token
-            $token = Str::random(32);
+                // Generate verification token
+                $token = Str::random(32);
 
-            try {
-                DB::table('email_verifications')->updateOrInsert(
-                    ['email' => $user->email],
-                    ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
-                );
-            } catch (\Exception $e) {
-                Log::error('Email verification token creation failed: ' . $e->getMessage());
-                // Continue even if token creation fails
-            }
+                try {
+                    DB::table('email_verifications')->updateOrInsert(
+                        ['email' => $user->email],
+                        ['token' => $token, 'created_at' => now(), 'updated_at' => now()]
+                    );
+                } catch (\Exception $e) {
+                    Log::error('Email verification token creation failed: ' . $e->getMessage());
+                    // Continue even if token creation fails
+                }
 
-            // Attempt to send verification email with fallback
-            try {
-                // Force log mailer as fallback for production
-                config(['mail.mailers.smtp.transport' => 'log']);
-                Mail::to($user->email)->send(new VerifyEmail($user->email, $token));
-            } catch (\Exception $e) {
-                Log::error('Email sending failed: ' . $e->getMessage());
-                // Continue registration even if email fails
-            }
+                // Attempt to send verification email with fallback
+                try {
+                    // Force log mailer as fallback for production
+                    config(['mail.mailers.smtp.transport' => 'log']);
+                    Mail::to($user->email)->send(new VerifyEmail($user->email, $token));
+                } catch (\Exception $e) {
+                    Log::error('Email sending failed: ' . $e->getMessage());
+                    // Continue registration even if email fails
+                }
 
-            return redirect()->route('verification.wait', ['email' => $user->email])
-                ->with('success', 'Account created! Verification email sent.');
+                return redirect()->route('verification.wait', ['email' => $user->email])
+                    ->with('success', 'Account created! Verification email sent.');
+            });
 
         } catch (\Illuminate\Database\QueryException $e) {
             Log::error('Database error during registration: ' . $e->getMessage());
-            return back()->withErrors(['email' => 'Registration failed due to database error. Please try again.']);
+            return back()->withErrors(['email' => 'Database error: ' . $e->getMessage()]);
         } catch (\Exception $e) {
             Log::error('Registration failed: ' . $e->getMessage());
             return back()->withErrors(['email' => 'An error occurred. Please try again.']);
@@ -309,24 +318,30 @@ class AuthController extends Controller
                 'new_password' => 'required|string|min:6|confirmed',
             ]);
 
-            $user = User::where('email', $request->email)->first();
-            if (!$user) {
-                return back()->withErrors(['email' => 'User not found.']);
-            }
+            // Use database transaction for safe password update
+            return DB::transaction(function () use ($request) {
+                $user = User::where('email', $request->email)->first();
+                if (!$user) {
+                    return back()->withErrors(['email' => 'User not found.']);
+                }
 
-            $user->password = Hash::make($request->new_password);
+                $user->password = Hash::make($request->new_password);
 
-            // Only set temp_password if the column exists
-            if (Schema::hasColumn('users', 'temp_password')) {
-                $user->temp_password = $request->new_password;
-            }
+                // Only set temp_password if the column exists
+                if (Schema::hasColumn('users', 'temp_password')) {
+                    $user->temp_password = $request->new_password;
+                }
 
-            $user->save();
+                $user->save();
 
-            DB::table('password_resets')->where('email', $request->email)->delete();
+                DB::table('password_resets')->where('email', $request->email)->delete();
 
-            return redirect()->route('login')->with('success', 'Password changed successfully! You can login now.');
+                return redirect()->route('login')->with('success', 'Password changed successfully! You can login now.');
+            });
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during password update: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'Database error: ' . $e->getMessage()]);
         } catch (\Exception $e) {
             Log::error('Password update failed: ' . $e->getMessage());
             return back()->withErrors(['email' => 'An error occurred. Please try again.']);
@@ -351,26 +366,32 @@ class AuthController extends Controller
                 'email.exists' => 'This email is not registered in our system.',
             ]);
 
-            $user = User::where('email', $request->email)->first();
-            if (!$user) {
-                return back()->withErrors(['email' => 'User not found.']);
-            }
+            // Use database transaction for safe password update
+            return DB::transaction(function () use ($request) {
+                $user = User::where('email', $request->email)->first();
+                if (!$user) {
+                    return back()->withErrors(['email' => 'User not found.']);
+                }
 
-            if (!Hash::check($request->old_password, $user->password)) {
-                return back()->withErrors(['old_password' => 'Old password does not match our records.']);
-            }
+                if (!Hash::check($request->old_password, $user->password)) {
+                    return back()->withErrors(['old_password' => 'Old password does not match our records.']);
+                }
 
-            $user->password = Hash::make($request->new_password);
+                $user->password = Hash::make($request->new_password);
 
-            // Only set temp_password if the column exists
-            if (Schema::hasColumn('users', 'temp_password')) {
-                $user->temp_password = $request->new_password;
-            }
+                // Only set temp_password if the column exists
+                if (Schema::hasColumn('users', 'temp_password')) {
+                    $user->temp_password = $request->new_password;
+                }
 
-            $user->save();
+                $user->save();
 
-            return back()->with('success', 'Password changed successfully. You can now login with your new password.');
+                return back()->with('success', 'Password changed successfully. You can now login with your new password.');
+            });
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during old password change: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'Database error: ' . $e->getMessage()]);
         } catch (\Exception $e) {
             Log::error('Old password change failed: ' . $e->getMessage());
             return back()->withErrors(['email' => 'An error occurred. Please try again.']);
