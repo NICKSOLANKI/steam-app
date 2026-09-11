@@ -29,6 +29,7 @@ COPY . /var/www/html/
 RUN composer install --no-dev --optimize-autoloader
 
 # Install Node.js dependencies and build frontend assets
+ENV NODE_OPTIONS="--openssl-legacy-provider"
 RUN npm install
 RUN npm run production
 
